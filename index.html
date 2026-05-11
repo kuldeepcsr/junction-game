@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Junction: The Railway Accounting Game</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Calibri, Arial, sans-serif; }
+body { background: linear-gradient(135deg, #1B2D5B 0%, #2A4377 100%); min-height: 100vh; color: #fff; padding: 20px; user-select: none; }
+.container { max-width: 1200px; margin: 0 auto; background: rgba(255,255,255,0.05); border-radius: 20px; padding: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.4); border: 1px solid rgba(212,162,76,0.3); }
+h1 { font-family: Georgia, serif; font-size: 56px; color: #D4A24C; text-align: center; margin-bottom: 10px; text-shadow: 2px 2px 8px rgba(0,0,0,0.5); }
+h2 { font-family: Georgia, serif; font-size: 38px; color: #D4A24C; margin-bottom: 20px; }
+h3 { font-size: 26px; color: #fff; margin-bottom: 15px; }
+.subtitle { text-align: center; font-size: 26px; color: #F5F1E8; font-style: italic; margin-bottom: 40px; }
+.screen { display: none; animation: fadeIn 0.5s ease; }
+.screen.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+.form-group { margin-bottom: 25px; }
+label { display: block; font-size: 22px; margin-bottom: 8px; color: #F5F1E8; font-weight: 600; }
+input, select { width: 100%; padding: 16px 20px; font-size: 22px; border: 2px solid #D4A24C; border-radius: 10px; background: rgba(255,255,255,0.95); color: #1B2D5B; font-weight: 600; }
+input:focus, select:focus { outline: none; border-color: #FFD580; box-shadow: 0 0 0 3px rgba(212,162,76,0.3); }
+.btn { padding: 18px 50px; font-size: 24px; font-weight: bold; background: linear-gradient(135deg, #D4A24C 0%, #B8862A 100%); color: #1B2D5B; border: none; border-radius: 12px; cursor: pointer; transition: all 0.3s; box-shadow: 0 6px 15px rgba(0,0,0,0.3); margin: 10px 5px; font-family: Georgia, serif; }
+.btn:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(0,0,0,0.4); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.btn-secondary { background: linear-gradient(135deg, #8B1E3F 0%, #6B1530 100%); color: #fff; }
+.center { text-align: center; }
+.level-header { background: rgba(139,30,63,0.4); padding: 20px 30px; border-radius: 12px; margin-bottom: 25px; border-left: 6px solid #D4A24C; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px; }
+.level-badge { font-family: Georgia, serif; font-size: 28px; color: #D4A24C; font-weight: bold; }
+.progress-bar { flex: 1; height: 18px; background: rgba(255,255,255,0.15); border-radius: 10px; overflow: hidden; min-width: 200px; }
+.progress-fill { height: 100%; background: linear-gradient(90deg, #D4A24C, #FFD580); transition: width 0.5s; border-radius: 10px; }
+.score-display { font-size: 24px; color: #D4A24C; font-weight: bold; }
+.story { background: rgba(245,241,232,0.95); color: #1A1A1A; padding: 25px 30px; border-radius: 12px; font-size: 22px; line-height: 1.6; margin-bottom: 25px; border-left: 6px solid #8B1E3F; }
+.story strong { color: #8B1E3F; }
+.story em { color: #1B2D5B; font-style: italic; }
+.instruction { background: rgba(212,162,76,0.2); padding: 18px 25px; border-radius: 10px; font-size: 22px; margin-bottom: 25px; text-align: center; border: 2px dashed #D4A24C; font-weight: 600; }
+.game-area { background: rgba(255,255,255,0.08); padding: 25px; border-radius: 15px; margin-bottom: 25px; }
+.drag-items { display: flex; flex-wrap: wrap; gap: 15px; margin-bottom: 25px; justify-content: center; min-height: 80px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 10px; }
+.drag-item { padding: 14px 22px; background: linear-gradient(135deg, #F5F1E8 0%, #FFE9C4 100%); color: #1B2D5B; border-radius: 10px; font-size: 20px; font-weight: 600; cursor: grab; border: 3px solid #D4A24C; transition: all 0.2s; box-shadow: 0 4px 8px rgba(0,0,0,0.2); }
+.drag-item:active { cursor: grabbing; }
+.drag-item.dragging { opacity: 0.5; transform: scale(0.95); }
+.drag-item.placed { opacity: 0.3; pointer-events: none; }
+.drop-zones { display: grid; gap: 20px; margin-bottom: 20px; }
+.drop-zones.cols-2 { grid-template-columns: 1fr 1fr; }
+.drop-zones.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+.drop-zone { min-height: 180px; padding: 20px; background: rgba(255,255,255,0.1); border: 3px dashed #D4A24C; border-radius: 12px; transition: all 0.3s; }
+.drop-zone.drag-over { background: rgba(212,162,76,0.3); border-style: solid; transform: scale(1.02); }
+.drop-zone-header { font-family: Georgia, serif; font-size: 24px; color: #D4A24C; font-weight: bold; text-align: center; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 2px solid rgba(212,162,76,0.4); }
+.drop-zone-subtitle { font-size: 16px; color: #F5F1E8; text-align: center; font-style: italic; margin-bottom: 15px; }
+.dropped-items { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.dropped-item { padding: 10px 18px; font-size: 18px; border-radius: 8px; font-weight: 600; }
+.dropped-item.correct { background: #2E7D5B; color: #fff; border: 2px solid #4CAF50; }
+.dropped-item.wrong { background: #B8412E; color: #fff; border: 2px solid #FF5722; }
+.feedback { padding: 20px 25px; border-radius: 12px; font-size: 22px; margin: 20px 0; text-align: center; font-weight: 600; display: none; }
+.feedback.show { display: block; animation: fadeIn 0.4s; }
+.feedback.success { background: rgba(46,125,91,0.9); border: 3px solid #4CAF50; }
+.feedback.partial { background: rgba(212,162,76,0.9); color: #1B2D5B; border: 3px solid #D4A24C; }
+.feedback.fail { background: rgba(184,65,46,0.9); border: 3px solid #FF5722; }
+.btn-group { text-align: center; margin-top: 20px; }
+.options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin: 20px 0; }
+.option-btn { padding: 20px; font-size: 22px; background: rgba(245,241,232,0.95); color: #1B2D5B; border: 3px solid #D4A24C; border-radius: 12px; cursor: pointer; font-weight: 600; transition: all 0.2s; text-align: left; }
+.option-btn:hover { background: #FFE9C4; transform: translateY(-2px); }
+.option-btn.selected.correct { background: #2E7D5B; color: #fff; border-color: #4CAF50; }
+.option-btn.selected.wrong { background: #B8412E; color: #fff; border-color: #FF5722; }
+.option-btn.disabled { pointer-events: none; }
+.result-summary { text-align: center; padding: 30px; }
+.result-score { font-family: Georgia, serif; font-size: 96px; color: #D4A24C; font-weight: bold; margin: 20px 0; text-shadow: 3px 3px 10px rgba(0,0,0,0.5); }
+.result-grade { font-family: Georgia, serif; font-size: 42px; margin-bottom: 30px; color: #fff; }
+.level-summary { background: rgba(255,255,255,0.1); padding: 25px; border-radius: 12px; margin: 20px 0; text-align: left; }
+.level-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.1); font-size: 20px; }
+.level-row:last-child { border-bottom: none; }
+.level-name { color: #F5F1E8; font-weight: 600; }
+.level-result.pass { color: #4CAF50; font-weight: bold; }
+.level-result.fail { color: #FF5722; font-weight: bold; }
+.candidate-info { background: rgba(212,162,76,0.2); padding: 20px 25px; border-radius: 12px; margin-bottom: 25px; font-size: 22px; border-left: 6px solid #D4A24C; }
+.candidate-info strong { color: #D4A24C; }
+.submission-status { padding: 18px; border-radius: 10px; font-size: 20px; margin: 20px 0; text-align: center; font-weight: 600; }
+.submission-status.pending { background: rgba(212,162,76,0.3); border: 2px solid #D4A24C; }
+.submission-status.success { background: rgba(46,125,91,0.4); border: 2px solid #4CAF50; }
+.submission-status.error { background: rgba(184,65,46,0.4); border: 2px solid #FF5722; }
+.spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; vertical-align: middle; margin-right: 10px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (max-width: 768px) { h1 { font-size: 36px; } h2 { font-size: 28px; } .container { padding: 20px; } .drop-zones.cols-2, .drop-zones.cols-3 { grid-template-columns: 1fr; } .options-grid { grid-template-columns: 1fr; } .result-score { font-size: 64px; } }
+</style>
+</head>
+<body>
+<div class="container">
+
+<div id="screen-register" class="screen active">
+  <h1>JUNCTION</h1>
+  <p class="subtitle">The Railway Accounting Simulation Game</p>
+  <div style="background: rgba(212,162,76,0.15); padding: 25px; border-radius: 12px; margin-bottom: 30px; text-align: center; font-size: 22px; line-height: 1.6;">
+    Welcome, Officer! You are about to take charge of <strong style="color:#D4A24C;">JUNCTION</strong> Station.
+    <br>Navigate 10 levels of real railway accounting decisions.
+    <br><em>Your final score will be automatically sent to your mentor.</em>
+  </div>
+  <h2 style="font-size: 28px;">Candidate Registration</h2>
+  <div class="form-group">
+    <label for="name">Full Name *</label>
+    <input type="text" id="name" placeholder="Enter your full name" required>
+  </div>
+  <div class="form-group">
+    <label for="idno">ID / Employee Number *</label>
+    <input type="text" id="idno" placeholder="e.g. IRTS/2024/001" required>
+  </div>
+  <div class="form-group">
+    <label for="contact">Contact Number (Optional)</label>
+    <input type="text" id="contact" placeholder="Phone or email">
+  </div>
+  <div class="center">
+    <button class="btn" onclick="startGame()">START GAME →</button>
+  </div>
+</div>
+
+<div id="screen-game" class="screen">
+  <div class="candidate-info" id="candidate-display"></div>
+  <div class="level-header">
+    <div class="level-badge" id="level-badge">LEVEL 1 / 10</div>
+    <div class="progress-bar"><div class="progress-fill" id="progress-fill" style="width: 10%"></div></div>
+    <div class="score-display">Score: <span id="score-display">0</span></div>
+  </div>
+  <h2 id="level-title">Level Title</h2>
+  <div class="story" id="level-story"></div>
+  <div class="instruction" id="level-instruction"></div>
+  <div class="game-area" id="game-area"></div>
+  <div class="feedback" id="feedback"></div>
+  <div class="btn-group">
+    <button class="btn" id="check-btn" onclick="checkAnswer()">CHECK ANSWER</button>
+    <button class="btn btn-secondary" id="next-btn" onclick="nextLevel()" style="display:none;">NEXT LEVEL →</button>
+  </div>
+</div>
+
+<div id="screen-result" class="screen">
+  <h1>GAME COMPLETE!</h1>
+  <div class="result-summary">
+    <div class="candidate-info" id="result-candidate" style="text-align: left;"></div>
+    <h3 style="font-size:28px;">Your Final Score</h3>
+    <div class="result-score"><span id="final-score">0</span> / 100</div>
+    <div class="result-grade" id="final-grade"></div>
+    <div class="submission-status pending" id="submission-status">
+      <span class="spinner"></span>Sending results to mentor...
+    </div>
+    <div class="level-summary" id="level-summary"></div>
+    <button class="btn" onclick="window.print()">PRINT CERTIFICATE</button>
+    <button class="btn btn-secondary" onclick="location.reload()">PLAY AGAIN</button>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ====================================================================
+// MENTOR: PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE
+// See setup instructions in the accompanying PDF/document.
+// ====================================================================
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbySGwFqGwAbQ0EV6FEYX77rz3ob9DKK4Y_L_mGtRoAzfo82GI6HWjS8Xe4s-bFyCv8r/exec";
+// ====================================================================
+
+let candidate = { name: '', idno: '', contact: '' };
+let currentLevel = 0;
+let score = 0;
+let levelResults = [];
+let currentLevelData = null;
+let currentAnswers = {};
+let gameStartTime = null;
+
+const levels = [
+  { title: "Level 1: The Three Streams of Earnings", story: "You arrive at <strong>JUNCTION Station</strong> as the new Station Superintendent. The Divisional Railway Manager tells you: <em>\"Your station has three streams of earnings — watch them all carefully.\"</em>", instruction: "📥 DRAG each item to its correct earning stream", type: "drag",
+    items: [
+      { id: 'i1', text: 'Reserved Train Ticket', zone: 'passenger' },
+      { id: 'i2', text: 'Cement Rake Freight', zone: 'goods' },
+      { id: 'i3', text: 'Parking Contractor Fee', zone: 'sundry' },
+      { id: 'i4', text: 'Platform Ticket', zone: 'passenger' },
+      { id: 'i5', text: 'Demurrage Charges', zone: 'goods' },
+      { id: 'i6', text: 'Hoarding Advertisement', zone: 'sundry' },
+    ],
+    zones: [
+      { id: 'passenger', title: 'PASSENGER', subtitle: '₹8 lakhs/day' },
+      { id: 'goods', title: 'GOODS', subtitle: '₹15 lakhs/day' },
+      { id: 'sundry', title: 'SUNDRY', subtitle: '₹2 lakhs/day' },
+    ], cols: 3
+  },
+  { title: "Level 2: Revenue vs Capital Spending", story: "Bills pile up on your desk. The DRM sanctions ₹4 crores for new infrastructure. <em>You must classify every rupee of spending correctly.</em>", instruction: "📥 DRAG each expense to REVENUE or CAPITAL", type: "drag",
+    items: [
+      { id: 'i1', text: 'Foot-Over-Bridge', zone: 'capital' },
+      { id: 'i2', text: 'Electricity Bill', zone: 'revenue' },
+      { id: 'i3', text: 'Staff Salaries', zone: 'revenue' },
+      { id: 'i4', text: 'Solar Power Plant', zone: 'capital' },
+      { id: 'i5', text: 'Platform Extension', zone: 'capital' },
+      { id: 'i6', text: 'Stationery Purchase', zone: 'revenue' },
+      { id: 'i7', text: 'New Weighbridge', zone: 'capital' },
+      { id: 'i8', text: 'Uniform for Porters', zone: 'revenue' },
+    ],
+    zones: [
+      { id: 'revenue', title: 'REVENUE EXPENDITURE', subtitle: 'Consumed in same year' },
+      { id: 'capital', title: 'CAPITAL EXPENDITURE', subtitle: 'Creates lasting asset' },
+    ], cols: 2
+  },
+  { title: "Level 3: The Classification Trap", story: "A clerk shows you a bill for the <strong>₹4 crore Foot-Over-Bridge</strong> and asks how to book it. He suggests treating it as a Revenue Expense.", instruction: "🤔 What should you do?", type: "quiz",
+    options: [
+      { text: 'Book as Revenue Expense — money is money', correct: false },
+      { text: 'Book as Capital Expenditure — it creates a 40-year asset', correct: true },
+      { text: 'Split it half-half to balance the books', correct: false },
+      { text: 'Hide it under Sundry to avoid questions', correct: false },
+    ],
+    explanation: "A foot-over-bridge serves passengers for 40 years. Treating it as revenue would show a false ₹4 crore loss this year. <strong>Capital Expenditure</strong> is the only correct answer."
+  },
+  { title: "Level 4: The Three Types of Accounts", story: "Every transaction must be recorded scientifically. The classical system uses <em>Personal, Real,</em> and <em>Nominal</em> accounts.", instruction: "📥 DRAG each account to its correct type", type: "drag",
+    items: [
+      { id: 'i1', text: 'M/s Ultratech Cement A/c', zone: 'personal' },
+      { id: 'i2', text: 'Cash A/c', zone: 'real' },
+      { id: 'i3', text: 'Salaries A/c', zone: 'nominal' },
+      { id: 'i4', text: 'State Bank of India A/c', zone: 'personal' },
+      { id: 'i5', text: 'Goods Shed A/c', zone: 'real' },
+      { id: 'i6', text: 'Passenger Earnings A/c', zone: 'nominal' },
+      { id: 'i7', text: 'Computers A/c', zone: 'real' },
+      { id: 'i8', text: 'Electricity Charges A/c', zone: 'nominal' },
+      { id: 'i9', text: 'Sharma Contractor A/c', zone: 'personal' },
+    ],
+    zones: [
+      { id: 'personal', title: 'PERSONAL', subtitle: 'Persons & Firms' },
+      { id: 'real', title: 'REAL', subtitle: 'Tangible Assets' },
+      { id: 'nominal', title: 'NOMINAL', subtitle: 'Income & Expense' },
+    ], cols: 3
+  },
+  { title: "Level 5: The Golden Rules", story: "You must master the three Golden Rules of Accounting. Each type of account has its own debit/credit rule.", instruction: "📥 MATCH each rule with its correct account type", type: "drag",
+    items: [
+      { id: 'i1', text: 'Debit the Receiver, Credit the Giver', zone: 'personal' },
+      { id: 'i2', text: 'Debit What Comes In, Credit What Goes Out', zone: 'real' },
+      { id: 'i3', text: 'Debit Expenses & Losses, Credit Incomes & Gains', zone: 'nominal' },
+    ],
+    zones: [
+      { id: 'personal', title: 'PERSONAL A/c', subtitle: 'Persons' },
+      { id: 'real', title: 'REAL A/c', subtitle: 'Assets' },
+      { id: 'nominal', title: 'NOMINAL A/c', subtitle: 'Income/Expense' },
+    ], cols: 3
+  },
+  { title: "Level 6: The Outstanding Dues", story: "Six months in, you discover <strong>₹3.5 crores</strong> of unpaid freight from cement and fertilizer companies. Some bills are over 2 years old.", instruction: "🤔 Which account type captures these unpaid dues?", type: "quiz",
+    options: [
+      { text: 'Real Account — it is money owed', correct: false },
+      { text: 'Nominal Account — under losses', correct: false },
+      { text: 'Personal Account — Sundry Debtors', correct: true },
+      { text: 'Cash Account — until recovered', correct: false },
+    ],
+    explanation: "Money owed BY parties to us is tracked as <strong>Sundry Debtors</strong> — a Personal Account. Each party gets their own A/c so we know exactly who owes how much."
+  },
+  { title: "Level 7: A Day's Transactions", story: "It's a busy day at JUNCTION. Multiple transactions need recording. <em>Apply the Golden Rules.</em>", instruction: "📥 DRAG each transaction to DEBIT or CREDIT side", type: "drag",
+    items: [
+      { id: 'i1', text: 'Cash received from ticket sales', zone: 'debit' },
+      { id: 'i2', text: 'Salary paid to staff', zone: 'debit' },
+      { id: 'i3', text: 'Passenger Earnings (income)', zone: 'credit' },
+      { id: 'i4', text: 'Electricity bill paid', zone: 'debit' },
+      { id: 'i5', text: 'Freight income from goods', zone: 'credit' },
+      { id: 'i6', text: 'Building purchased (asset comes in)', zone: 'debit' },
+    ],
+    zones: [
+      { id: 'debit', title: 'DEBIT (Dr.)', subtitle: 'Receiver / In / Expense' },
+      { id: 'credit', title: 'CREDIT (Cr.)', subtitle: 'Giver / Out / Income' },
+    ], cols: 2
+  },
+  { title: "Level 8: Hidden Sundry Earnings", story: "Most stationmasters ignore sundry earnings — but they add up beautifully. You decide to audit every contract at JUNCTION.", instruction: "📥 DRAG only the SUNDRY items into the Sundry Box (ignore others)", type: "drag",
+    items: [
+      { id: 'i1', text: 'ATM Kiosk Rent', zone: 'sundry' },
+      { id: 'i2', text: 'Train Ticket Sale', zone: 'not-sundry' },
+      { id: 'i3', text: 'Cloakroom Charges', zone: 'sundry' },
+      { id: 'i4', text: 'Cement Freight', zone: 'not-sundry' },
+      { id: 'i5', text: 'Tea Stall Licence Fee', zone: 'sundry' },
+      { id: 'i6', text: 'Pay-and-Use Toilet Fee', zone: 'sundry' },
+      { id: 'i7', text: 'Reserved Berth Ticket', zone: 'not-sundry' },
+      { id: 'i8', text: 'Hoarding Rent', zone: 'sundry' },
+    ],
+    zones: [
+      { id: 'sundry', title: 'SUNDRY EARNINGS', subtitle: 'The hidden gold' },
+      { id: 'not-sundry', title: 'NOT SUNDRY', subtitle: 'Passenger or Goods' },
+    ], cols: 2
+  },
+  { title: "Level 9: The Sr. DCM Review", story: "The Sr. DCM calls you for a review. She asks: <em>\"Which earning stream at JUNCTION needs the MOST attention to grow Railway revenue?\"</em>", instruction: "🤔 Choose your strategic answer", type: "quiz",
+    options: [
+      { text: 'Passenger — politically visible, easy wins', correct: false },
+      { text: 'Goods — already ₹15 lakhs/day, biggest base to grow', correct: true },
+      { text: 'Sundry — easiest to manage', correct: false },
+      { text: 'All three equally — no priorities', correct: false },
+    ],
+    explanation: "Goods earnings are the LARGEST stream (₹15 lakhs/day vs ₹8 lakhs passenger + ₹2 lakhs sundry). Growing the biggest stream by even 10% yields the most revenue. <strong>Prioritise where the money is.</strong>"
+  },
+  { title: "Level 10: Final Mastery", story: "One year later, JUNCTION earnings have grown 18%. The GM visits and asks you to demonstrate complete mastery by classifying these mixed transactions correctly.", instruction: "📥 DRAG each transaction to its correct CATEGORY", type: "drag",
+    items: [
+      { id: 'i1', text: 'New Solar Plant ₹50 lakh', zone: 'capital' },
+      { id: 'i2', text: 'IOCL freight pending', zone: 'personal' },
+      { id: 'i3', text: 'Daily ticket cash', zone: 'real' },
+      { id: 'i4', text: 'Parking fee collected', zone: 'nominal-income' },
+      { id: 'i5', text: 'Monthly electricity', zone: 'revenue' },
+      { id: 'i6', text: 'Goods shed building', zone: 'capital' },
+      { id: 'i7', text: 'Contractor payment due', zone: 'personal' },
+      { id: 'i8', text: 'Staff salaries monthly', zone: 'revenue' },
+    ],
+    zones: [
+      { id: 'capital', title: 'CAPITAL EXP.', subtitle: 'Long-term asset' },
+      { id: 'revenue', title: 'REVENUE EXP.', subtitle: 'Yearly cost' },
+      { id: 'real', title: 'REAL A/c', subtitle: 'Cash/Tangible' },
+      { id: 'personal', title: 'PERSONAL A/c', subtitle: 'Party/Firm' },
+      { id: 'nominal-income', title: 'NOMINAL Income', subtitle: 'Earnings' },
+    ], cols: 3
+  },
+];
+
+function startGame() {
+  const name = document.getElementById('name').value.trim();
+  const idno = document.getElementById('idno').value.trim();
+  const contact = document.getElementById('contact').value.trim();
+  if (!name || !idno) { alert('Please enter your Name and ID Number to start.'); return; }
+  candidate = { name, idno, contact };
+  gameStartTime = new Date();
+  document.getElementById('candidate-display').innerHTML =
+    `<strong>Officer:</strong> ${name} &nbsp; | &nbsp; <strong>ID:</strong> ${idno}` +
+    (contact ? ` &nbsp; | &nbsp; <strong>Contact:</strong> ${contact}` : '');
+  document.getElementById('screen-register').classList.remove('active');
+  document.getElementById('screen-game').classList.add('active');
+  loadLevel(0);
+}
+
+function loadLevel(idx) {
+  currentLevel = idx;
+  currentLevelData = levels[idx];
+  currentAnswers = {};
+  document.getElementById('level-badge').textContent = `LEVEL ${idx + 1} / 10`;
+  document.getElementById('progress-fill').style.width = `${((idx + 1) / 10) * 100}%`;
+  document.getElementById('score-display').textContent = score;
+  document.getElementById('level-title').textContent = currentLevelData.title;
+  document.getElementById('level-story').innerHTML = currentLevelData.story;
+  document.getElementById('level-instruction').textContent = currentLevelData.instruction;
+  document.getElementById('feedback').classList.remove('show', 'success', 'partial', 'fail');
+  document.getElementById('check-btn').style.display = 'inline-block';
+  document.getElementById('check-btn').disabled = false;
+  document.getElementById('next-btn').style.display = 'none';
+  const ga = document.getElementById('game-area');
+  if (currentLevelData.type === 'drag') renderDragGame(ga, currentLevelData);
+  else if (currentLevelData.type === 'quiz') renderQuizGame(ga, currentLevelData);
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function renderDragGame(container, data) {
+  const shuffled = [...data.items].sort(() => Math.random() - 0.5);
+  let itemsHtml = '<div class="drag-items" id="drag-items">';
+  shuffled.forEach(item => {
+    itemsHtml += `<div class="drag-item" draggable="true" data-id="${item.id}" data-zone="${item.zone}">${item.text}</div>`;
+  });
+  itemsHtml += '</div>';
+  let zonesHtml = `<div class="drop-zones cols-${data.cols}">`;
+  data.zones.forEach(zone => {
+    zonesHtml += `<div class="drop-zone" data-zone="${zone.id}"><div class="drop-zone-header">${zone.title}</div><div class="drop-zone-subtitle">${zone.subtitle}</div><div class="dropped-items" id="dropped-${zone.id}"></div></div>`;
+  });
+  zonesHtml += '</div>';
+  container.innerHTML = itemsHtml + zonesHtml;
+  attachDragEvents();
+}
+
+function attachDragEvents() {
+  const items = document.querySelectorAll('.drag-item');
+  const zones = document.querySelectorAll('.drop-zone');
+  items.forEach(item => {
+    item.addEventListener('dragstart', e => {
+      e.dataTransfer.setData('text/plain', item.dataset.id);
+      e.dataTransfer.setData('correct-zone', item.dataset.zone);
+      e.dataTransfer.setData('item-text', item.textContent);
+      item.classList.add('dragging');
+    });
+    item.addEventListener('dragend', () => item.classList.remove('dragging'));
+    item.addEventListener('touchstart', handleTouchStart, { passive: false });
+    item.addEventListener('touchmove', handleTouchMove, { passive: false });
+    item.addEventListener('touchend', handleTouchEnd);
+  });
+  zones.forEach(zone => {
+    zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+    zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+    zone.addEventListener('drop', e => {
+      e.preventDefault();
+      zone.classList.remove('drag-over');
+      const id = e.dataTransfer.getData('text/plain');
+      const correctZone = e.dataTransfer.getData('correct-zone');
+      const text = e.dataTransfer.getData('item-text');
+      placeItem(id, zone.dataset.zone, correctZone, text);
+    });
+  });
+}
+
+let touchItem = null, touchClone = null;
+function handleTouchStart(e) {
+  e.preventDefault();
+  touchItem = e.target;
+  touchItem.classList.add('dragging');
+  touchClone = touchItem.cloneNode(true);
+  touchClone.style.position = 'fixed';
+  touchClone.style.pointerEvents = 'none';
+  touchClone.style.opacity = '0.9';
+  touchClone.style.zIndex = '9999';
+  document.body.appendChild(touchClone);
+  moveTouchClone(e.touches[0]);
+}
+function handleTouchMove(e) {
+  e.preventDefault();
+  if (!touchClone) return;
+  moveTouchClone(e.touches[0]);
+  document.querySelectorAll('.drop-zone').forEach(z => z.classList.remove('drag-over'));
+  const t = e.touches[0];
+  const elBelow = document.elementFromPoint(t.clientX, t.clientY);
+  const zone = elBelow ? elBelow.closest('.drop-zone') : null;
+  if (zone) zone.classList.add('drag-over');
+}
+function handleTouchEnd(e) {
+  if (!touchItem || !touchClone) return;
+  const t = e.changedTouches[0];
+  const elBelow = document.elementFromPoint(t.clientX, t.clientY);
+  const zone = elBelow ? elBelow.closest('.drop-zone') : null;
+  if (zone) placeItem(touchItem.dataset.id, zone.dataset.zone, touchItem.dataset.zone, touchItem.textContent);
+  touchItem.classList.remove('dragging');
+  document.querySelectorAll('.drop-zone').forEach(z => z.classList.remove('drag-over'));
+  touchClone.remove();
+  touchClone = null;
+  touchItem = null;
+}
+function moveTouchClone(touch) {
+  if (!touchClone) return;
+  touchClone.style.left = (touch.clientX - 60) + 'px';
+  touchClone.style.top = (touch.clientY - 25) + 'px';
+}
+
+function placeItem(itemId, droppedZone, correctZone, text) {
+  if (currentAnswers[itemId]) return;
+  currentAnswers[itemId] = droppedZone;
+  const isCorrect = droppedZone === correctZone;
+  const droppedContainer = document.getElementById(`dropped-${droppedZone}`);
+  const span = document.createElement('span');
+  span.className = `dropped-item ${isCorrect ? 'correct' : 'wrong'}`;
+  span.textContent = text;
+  droppedContainer.appendChild(span);
+  const srcItem = document.querySelector(`.drag-item[data-id="${itemId}"]`);
+  if (srcItem) srcItem.classList.add('placed');
+}
+
+function renderQuizGame(container, data) {
+  let html = '<div class="options-grid">';
+  data.options.forEach((opt, i) => {
+    html += `<button class="option-btn" data-correct="${opt.correct}" onclick="selectOption(this)">${String.fromCharCode(65+i)}. ${opt.text}</button>`;
+  });
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function selectOption(btn) {
+  document.querySelectorAll('.option-btn').forEach(b => b.classList.add('disabled'));
+  const isCorrect = btn.dataset.correct === 'true';
+  btn.classList.add('selected', isCorrect ? 'correct' : 'wrong');
+  if (!isCorrect) {
+    document.querySelectorAll('.option-btn').forEach(b => {
+      if (b.dataset.correct === 'true') b.classList.add('selected', 'correct');
+    });
+  }
+  currentAnswers['quiz'] = isCorrect ? 'correct' : 'wrong';
+}
+
+function checkAnswer() {
+  let levelScore = 0, totalItems = 0, correctCount = 0;
+  if (currentLevelData.type === 'drag') {
+    totalItems = currentLevelData.items.length;
+    currentLevelData.items.forEach(item => { if (currentAnswers[item.id] === item.zone) correctCount++; });
+    levelScore = Math.round((correctCount / totalItems) * 10);
+  } else if (currentLevelData.type === 'quiz') {
+    totalItems = 1;
+    correctCount = currentAnswers['quiz'] === 'correct' ? 1 : 0;
+    levelScore = correctCount * 10;
+  }
+  score += levelScore;
+  levelResults.push({ level: currentLevel + 1, title: currentLevelData.title, correct: correctCount, total: totalItems, points: levelScore });
+  document.getElementById('score-display').textContent = score;
+
+  const fb = document.getElementById('feedback');
+  fb.classList.add('show');
+  let fbMsg = '';
+  if (correctCount === totalItems) { fb.classList.add('success'); fbMsg = `🎉 PERFECT! You got all ${totalItems} correct! +${levelScore} points`; }
+  else if (correctCount >= totalItems / 2) { fb.classList.add('partial'); fbMsg = `⚠️ Good try! ${correctCount}/${totalItems} correct. +${levelScore} points. Wrong answers shown in RED.`; }
+  else { fb.classList.add('fail'); fbMsg = `❌ ${correctCount}/${totalItems} correct. +${levelScore} points. Review the wrong (red) items.`; }
+  if (currentLevelData.type === 'quiz' && currentLevelData.explanation) fbMsg += `<br><br><span style="font-size:18px;">💡 ${currentLevelData.explanation}</span>`;
+  fb.innerHTML = fbMsg;
+  document.getElementById('check-btn').style.display = 'none';
+  document.getElementById('next-btn').style.display = 'inline-block';
+  document.getElementById('next-btn').textContent = currentLevel === 9 ? 'SEE RESULTS →' : 'NEXT LEVEL →';
+}
+
+function nextLevel() {
+  if (currentLevel < 9) loadLevel(currentLevel + 1);
+  else showResults();
+}
+
+function showResults() {
+  document.getElementById('screen-game').classList.remove('active');
+  document.getElementById('screen-result').classList.add('active');
+  document.getElementById('result-candidate').innerHTML =
+    `<strong>Officer:</strong> ${candidate.name} &nbsp; | &nbsp; <strong>ID:</strong> ${candidate.idno}` +
+    (candidate.contact ? ` &nbsp; | &nbsp; <strong>Contact:</strong> ${candidate.contact}` : '') +
+    `<br><strong>Date:</strong> ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}`;
+  document.getElementById('final-score').textContent = score;
+  let grade = '';
+  if (score >= 90) grade = '🏆 OUTSTANDING — Master of Junction!';
+  else if (score >= 75) grade = '⭐ EXCELLENT — Future DRM material!';
+  else if (score >= 60) grade = '👍 GOOD — Solid grasp of fundamentals';
+  else if (score >= 40) grade = '📚 FAIR — Review the basics';
+  else grade = '🔄 RETAKE RECOMMENDED — Keep learning!';
+  document.getElementById('final-grade').textContent = grade;
+  let summary = '<h3 style="text-align:center; margin-bottom:20px;">Level-by-Level Performance</h3>';
+  levelResults.forEach(r => {
+    const passed = r.correct === r.total;
+    summary += `<div class="level-row"><span class="level-name">Level ${r.level}: ${r.title.replace(/^Level \d+:\s*/, '')}</span><span class="level-result ${passed ? 'pass' : 'fail'}">${r.correct}/${r.total} (+${r.points} pts)</span></div>`;
+  });
+  document.getElementById('level-summary').innerHTML = summary;
+  sendToGoogleSheet();
+}
+
+function sendToGoogleSheet() {
+  const statusEl = document.getElementById('submission-status');
+  if (!GOOGLE_SCRIPT_URL || GOOGLE_SCRIPT_URL === "PASTE_YOUR_WEB_APP_URL_HERE") {
+    statusEl.className = 'submission-status error';
+    statusEl.innerHTML = '⚠️ Google Sheet not configured yet. Mentor must paste the Web App URL in the HTML file. Results NOT saved.';
+    return;
+  }
+  const endTime = new Date();
+  const durationSec = Math.round((endTime - gameStartTime) / 1000);
+  const get = (i, key) => levelResults[i] ? levelResults[i][key] : (key === 'points' ? 0 : '');
+  const fmt = i => levelResults[i] ? `${levelResults[i].correct}/${levelResults[i].total} (+${levelResults[i].points})` : '';
+
+  const payload = {
+    timestamp: endTime.toISOString(),
+    date: endTime.toLocaleDateString('en-IN', { day: '2-digit', month: '2-digit', year: 'numeric' }),
+    time: endTime.toLocaleTimeString('en-IN'),
+    name: candidate.name,
+    idno: candidate.idno,
+    contact: candidate.contact || '',
+    totalScore: score,
+    grade: document.getElementById('final-grade').textContent,
+    durationSeconds: durationSec,
+    level1: fmt(0), level2: fmt(1), level3: fmt(2), level4: fmt(3), level5: fmt(4),
+    level6: fmt(5), level7: fmt(6), level8: fmt(7), level9: fmt(8), level10: fmt(9),
+    level1Points: get(0, 'points'), level2Points: get(1, 'points'), level3Points: get(2, 'points'),
+    level4Points: get(3, 'points'), level5Points: get(4, 'points'), level6Points: get(5, 'points'),
+    level7Points: get(6, 'points'), level8Points: get(7, 'points'), level9Points: get(8, 'points'),
+    level10Points: get(9, 'points'),
+  };
+
+  // no-cors mode + text/plain avoids CORS preflight on Google Apps Script
+  fetch(GOOGLE_SCRIPT_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(payload)
+  })
+  .then(() => {
+    statusEl.className = 'submission-status success';
+    statusEl.innerHTML = '✅ Results successfully sent to mentor!';
+  })
+  .catch(err => {
+    statusEl.className = 'submission-status error';
+    statusEl.innerHTML = '⚠️ Could not send results. Please screenshot this page and share with your mentor.';
+    console.error('Submission error:', err);
+  });
+}
+</script>
+</body>
+</html>
